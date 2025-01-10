@@ -31,6 +31,23 @@ Member* searchMember(Member* member, const char name[]) {
     return searchMember(member->right, name);
 }
 
+void updateParentCommission(Member* member) {
+    if (member == NULL) return;
+
+    member->commission = 0;
+
+    if (member->left != NULL) {
+        member->commission += (member->left->commission * 0.10);
+    }
+    if (member->right != NULL) {
+        member->commission += (member->right->commission * 0.10); 
+    }
+
+    if (member->left != NULL && member->right != NULL) {
+        member->commission += 500; 
+    }
+}
+
 void addDownline(Member* member, const char downlineName[], int position) {
     Member* existingMember = searchMember(member, downlineName);
     if (existingMember != NULL) {
@@ -59,33 +76,40 @@ void addDownline(Member* member, const char downlineName[], int position) {
         return;
     }
 
-    if (member->left != NULL && member->right != NULL) {
-        member->commission += 500; 
-        printf("%s has earned an additional commission of P500!\n", member->name);
-    }
+    updateParentCommission(member);
 }
 
-void displayDownlines(Member* member) {
+void displayDownlines(Member* member, int level) {
     if (member == NULL) {
-        printf("Member not found in the network.\n");
         return;
     }
 
-    printf("\n==================== Downlines of %s ====================\n", member->name);
-    printf("Left Downline: %s\n", member->left ? member->left->name : "None");
-    printf("Right Downline: %s\n", member->right ? member->right->name : "None");
-    printf("Total Commission: P%d\n", member->commission);
-    printf("=========================================================\n");
+    for (int i = 0; i < level; i++) {
+        printf("    ");
+    }
+    printf("-> %s (P %d)\n", member->name, member->commission);
+
+    displayDownlines(member->left, level + 1);
+    displayDownlines(member->right, level + 1);
+}
+
+int totalCommission(Member* member) {
+    if (member == NULL) return 0;
+    return member->commission + totalCommission(member->left) + totalCommission(member->right);
+}
+
+int countMembers(Member* member) {
+    if (member == NULL) return 0;
+    return 1 + countMembers(member->left) + countMembers(member->right);
 }
 
 void displayNetwork(Member* member, int level) {
     if (member == NULL) return;
 
     for (int i = 0; i < level; i++) {
-        printf("    "); 
+        printf("    ");
     }
     printf("-> %s (P%d)\n", member->name, member->commission);
-
     displayNetwork(member->left, level + 1);
     displayNetwork(member->right, level + 1);
 }
@@ -97,17 +121,17 @@ void freeNetwork(Member* member) {
     free(member);
 }
 
-void waitForUser  () {
+void waitForUser () {
     printf("\nPress Enter to continue...\n");
     while (getchar() != '\n');
-    getchar(); 
+    getchar();
 }
 
 void clearScreen() {
     #ifdef _WIN32
         system("cls");
     #else
- system("clear");
+        system("clear");
     #endif
 }
 
@@ -134,7 +158,9 @@ int main() {
         printf("1. Add New Member\n");
         printf("2. Display Downlines of a Member\n");
         printf("3. Display Entire Network Tree\n");
-        printf("4. Exit\n");
+        printf("4. Display Total Commission of Network\n");
+        printf("5. Count Total Members\n");
+        printf("6. Exit\n");
         printf("=====================================================================\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
@@ -154,6 +180,7 @@ int main() {
                     printf("Enter position (1 for left, 2 for right): ");
                     scanf("%d", &position);
                     addDownline(member, downlineName, position);
+                    updateParentCommission(root); // Update head node commission
                 }
                 waitForUser ();
                 break;
@@ -163,7 +190,7 @@ int main() {
                 printf("Enter name of the member: ");
                 scanf("%s", name);
                 member = searchMember(root, name);
-                displayDownlines(member);
+                displayDownlines(member, 0);
                 waitForUser ();
                 break;
 
@@ -176,6 +203,18 @@ int main() {
                 break;
 
             case 4:
+                clearScreen();
+                printf("Total Commission of the entire network: P%d\n", totalCommission(root));
+                waitForUser ();
+                break;
+
+            case 5:
+                clearScreen();
+                printf("Total number of members in the network: %d\n", countMembers(root));
+                waitForUser ();
+                break;
+
+            case 6:
                 clearScreen();
                 printf("Exiting the program. Thank you for using the Royale Company Network System!\n");
                 freeNetwork(root);
